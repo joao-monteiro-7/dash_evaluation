@@ -17,7 +17,7 @@ caminho_final = next((p for p in possiveis_ficheiros if os.path.exists(p)), None
 if not caminho_final:
     raise FileNotFoundError(
         f"Ficheiro Excel não encontrado em {pasta_atual}. "
-        "Coloca 'Ramen.xlsx' ou '11212025The-Ramen-Rater.xlsx' na mesma pasta do app.py."
+        "Garante que o ficheiro Excel está na raiz do repositório junto ao app.py."
     )
 
 xls = pd.ExcelFile(caminho_final, engine='openpyxl')
@@ -37,10 +37,11 @@ if 'Style' in df.columns:
 
 paises_disponiveis = sorted(df['Country'].unique())
 
-# 3. INICIALIZAR APLICAÇÃO DASH
+# 3. INICIALIZAR APLICAÇÃO DASH E EXPOR SERVER PARA O GUNICORN
 app = Dash(__name__, external_stylesheets=[dbc.themes.FLATLY])
+server = app.server
 
-# 4. LAYOUT (HTML Components, Core Components, Rows, Columns, Tabs, Filters)
+# 4. LAYOUT
 app.layout = dbc.Container([
 
     dbc.Row([
@@ -83,7 +84,7 @@ app.layout = dbc.Container([
                 dcc.Tab(label="📋 Table", value="tab-table")
             ]),
 
-            # CONTAINER DA TAB 1: GRAPHICS
+            # TAB 1: GRAPHICS
             html.Div(id="container-graphics", className="mt-4", children=[
                 dbc.Row([
                     dbc.Col([
@@ -100,7 +101,7 @@ app.layout = dbc.Container([
                 ], className="mt-3")
             ]),
 
-            # CONTAINER DA TAB 2: TABLE
+            # TAB 2: TABLE
             html.Div(id="container-table", className="mt-4", style={"display": "none"}, children=[
                 html.H5(id="table-count-title", className="mb-3"),
                 dash_table.DataTable(
@@ -204,4 +205,23 @@ def update_dashboard(selected_countries, stars_range):
         )
     ])
     fig_brands.update_layout(
-        title="Top 1
+        title="Top 10 Marcas Mais Avaliadas",
+        xaxis_title="Nº de Reviews",
+        yaxis_title="Marca",
+        template="plotly_white",
+        margin=dict(l=150, r=20, t=50, b=40)
+    )
+
+    return (
+        fig_bar,
+        fig_pie,
+        fig_brands,
+        dff.to_dict('records'),
+        f"A mostrar {len(dff)} registos filtrados"
+    )
+
+
+# 7. EXECUTAR LOCALMENTE OU VIA PORTA DO RENDER
+if __name__ == '__main__':
+    port = int(os.environ.get("PORT", 8050))
+    app.run(host="0.0.0.0", port=port, debug=False)
